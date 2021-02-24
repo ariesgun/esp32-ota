@@ -7,11 +7,11 @@
 
 #include "freertos/event_groups.h"
 
-/*! Identifier of the log messages produced by the application */
+ /*! Identifier of the log messages produced by the application */
 #define TAG "tb_ota"
 
 /*! Firmware version used for comparison after OTA config was received from ThingsBoard */
-#define FIRMWARE_VERSION "v1.1"
+#define FIRMWARE_VERSION "v1.2"
 
 /*! Factory partiton label */
 #define FACTORY_PARTITION_LABEL "factory"
@@ -31,13 +31,13 @@
  */
 #define TB_ATTRIBUTES_REQUEST_TOPIC "v1/devices/me/attributes/request/44332"
 
-/**
- * @brief  MQTT topic to receive the requested specified shared attributes from ThingsBoard.
- *         44332 is a request id, have to be the same as used for the request.
- */
+ /**
+  * @brief  MQTT topic to receive the requested specified shared attributes from ThingsBoard.
+  *         44332 is a request id, have to be the same as used for the request.
+  */
 #define TB_ATTRIBUTES_RESPONSE_TOPIC "v1/devices/me/attributes/response/44332"
 
-/*! Client attribute key to send the firmware version value to ThingsBoard */
+  /*! Client attribute key to send the firmware version value to ThingsBoard */
 #define TB_CLIENT_ATTR_FIELD_CURRENT_FW "currentFwVer"
 
 /*! Shared attribute keys on ThingsBoard */
@@ -58,7 +58,7 @@
 #define OTA_CONFIG_UPDATED_EVENT BIT5
 #define OTA_TASK_IN_NORMAL_STATE_EVENT BIT6
 
-/*! Max length of access token */
+ /*! Max length of access token */
 #define MAX_LENGTH_TB_ACCESS_TOKEN 20
 #define MAX_LENGTH_TB_URL 256
 
