@@ -8,16 +8,15 @@
 #include "wifi.h"
 #include "main.h"
 
-#include "esp_event_loop.h"
+#include "esp_event.h"
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
 
-/*! Buffer to save ESP32 MAC address */
+ /*! Buffer to save ESP32 MAC address */
 uint8_t esp32_mac[6];
 
-static esp_err_t esp_event_handler(void *ctx, system_event_t *event)
-{
+static esp_err_t esp_event_handler(void* ctx, system_event_t* event) {
     assert(event != NULL);
 
     switch (event->event_id)
@@ -40,8 +39,7 @@ static esp_err_t esp_event_handler(void *ctx, system_event_t *event)
     return ESP_OK;
 }
 
-void initialise_wifi(const char *running_partition_label)
-{
+void initialise_wifi(const char* running_partition_label) {
     assert(running_partition_label != NULL);
 
     tcpip_adapter_init();
@@ -78,7 +76,7 @@ void initialise_wifi(const char *running_partition_label)
     }
 
     APP_ABORT_ON_ERROR(esp_wifi_get_mac(ESP_IF_WIFI_STA, esp32_mac))
-    ESP_LOGI(TAG, "MAC address: %02X:%02X:%02X:%02X:%02X:%02X", esp32_mac[0], esp32_mac[1], esp32_mac[2], esp32_mac[3], esp32_mac[4], esp32_mac[5]);
+        ESP_LOGI(TAG, "MAC address: %02X:%02X:%02X:%02X:%02X:%02X", esp32_mac[0], esp32_mac[1], esp32_mac[2], esp32_mac[3], esp32_mac[4], esp32_mac[5]);
     APP_ABORT_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA));
 
     APP_ABORT_ON_ERROR(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));

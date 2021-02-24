@@ -7,7 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
-#include "esp_event_loop.h"
+#include "esp_event.h"
 #include "esp_log.h"
 
 #include "lwip/err.h"
@@ -47,11 +47,10 @@ static char mqtt_msg[512];
 
 static esp_mqtt_client_handle_t mqtt_client;
 
-static void parse_ota_config(const cJSON *object)
-{
+static void parse_ota_config(const cJSON* object) {
     if (object != NULL)
     {
-        cJSON *server_url_response = cJSON_GetObjectItem(object, TB_SHARED_ATTR_FIELD_TARGET_FW_URL);
+        cJSON* server_url_response = cJSON_GetObjectItem(object, TB_SHARED_ATTR_FIELD_TARGET_FW_URL);
         if (cJSON_IsString(server_url_response) && (server_url_response->valuestring != NULL) && strlen(server_url_response->valuestring) < sizeof(shared_attributes.targetFwServerUrl))
         {
             memcpy(shared_attributes.targetFwServerUrl, server_url_response->valuestring, strlen(server_url_response->valuestring));
@@ -59,7 +58,7 @@ static void parse_ota_config(const cJSON *object)
             ESP_LOGI(TAG, "Received firmware URL: %s", shared_attributes.targetFwServerUrl);
         }
 
-        cJSON *target_fw_ver_response = cJSON_GetObjectItem(object, TB_SHARED_ATTR_FIELD_TARGET_FW_VER);
+        cJSON* target_fw_ver_response = cJSON_GetObjectItem(object, TB_SHARED_ATTR_FIELD_TARGET_FW_VER);
         if (cJSON_IsString(target_fw_ver_response) && (target_fw_ver_response->valuestring != NULL) && strlen(target_fw_ver_response->valuestring) < sizeof(shared_attributes.targetFwVer))
         {
             memcpy(shared_attributes.targetFwVer, target_fw_ver_response->valuestring, strlen(target_fw_ver_response->valuestring));
@@ -69,8 +68,7 @@ static void parse_ota_config(const cJSON *object)
     }
 }
 
-static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
-{
+static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event) {
     assert(event != NULL);
 
     switch (event->event_id)
@@ -106,14 +104,14 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
         {
             memcpy(mqtt_msg, event->data, event->data_len);
             mqtt_msg[event->data_len] = 0;
-            cJSON *attributes = cJSON_Parse(mqtt_msg);
+            cJSON* attributes = cJSON_Parse(mqtt_msg);
             if (attributes != NULL)
             {
-                cJSON *shared = cJSON_GetObjectItem(attributes, "shared");
+                cJSON* shared = cJSON_GetObjectItem(attributes, "shared");
                 parse_ota_config(shared);
             }
 
-            char *attributes_string = cJSON_Print(attributes);
+            char* attributes_string = cJSON_Print(attributes);
             cJSON_Delete(attributes);
             ESP_LOGD(TAG, "Shared attributes response: %s", attributes_string);
             // Free is intentional, it's client responsibility to free the result of cJSON_Print
@@ -124,9 +122,9 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
         {
             memcpy(mqtt_msg, event->data, MIN(event->data_len, sizeof(mqtt_msg)));
             mqtt_msg[event->data_len] = 0;
-            cJSON *attributes = cJSON_Parse(mqtt_msg);
+            cJSON* attributes = cJSON_Parse(mqtt_msg);
             parse_ota_config(attributes);
-            char *attributes_string = cJSON_Print(attributes);
+            char* attributes_string = cJSON_Print(attributes);
             cJSON_Delete(attributes);
             ESP_LOGD(TAG, "Shared attributes were updated on ThingsBoard: %s", attributes_string);
             // Free is intentional, it's client responsibility to free the result of cJSON_Print
@@ -140,12 +138,15 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
     case MQTT_EVENT_BEFORE_CONNECT:
         ESP_LOGD(TAG, "MQTT_EVENT_BEFORE_CONNECT");
         break;
+    default:
+        ESP_LOGD(TAG, "DEFAULT");
+        break;
     }
+
     return ESP_OK;
 }
 
-esp_err_t _http_event_handler(esp_http_client_event_t *evt)
-{
+esp_err_t _http_event_handler(esp_http_client_event_t* evt) {
     assert(evt != NULL);
 
     switch (evt->event_id)
@@ -167,7 +168,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
         if (!esp_http_client_is_chunked_response(evt->client))
         {
             // Write out data
-            ESP_LOGD(TAG, "%.*s", evt->data_len, (char *)evt->data);
+            ESP_LOGD(TAG, "%.*s", evt->data_len, (char*)evt->data);
         }
         break;
     case HTTP_EVENT_ON_FINISH:
@@ -185,8 +186,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
  *
  * @param pvParameters Pointer to the task arguments
  */
-static void main_application_task(void *pvParameters)
-{
+static void main_application_task(void* pvParameters) {
     uint8_t counter = 0;
 
     while (1)
@@ -195,9 +195,9 @@ static void main_application_task(void *pvParameters)
 
         counter = counter < 1 ? counter + 1 : 0;
 
-        cJSON *root = cJSON_CreateObject();
+        cJSON* root = cJSON_CreateObject();
         cJSON_AddNumberToObject(root, "counter", counter);
-        char *post_data = cJSON_PrintUnformatted(root);
+        char* post_data = cJSON_PrintUnformatted(root);
         esp_mqtt_client_publish(mqtt_client, TB_TELEMETRY_TOPIC, post_data, 0, 1, 0);
         cJSON_Delete(root);
         // Free is intentional, it's client responsibility to free the result of cJSON_Print
@@ -215,8 +215,7 @@ static void main_application_task(void *pvParameters)
  * @return true If current running partition label is 'factory'
  * @return false If current runnit partition label is not 'factory'
  */
-static bool partition_is_factory(const char *running_partition_label, const char *config_name)
-{
+static bool partition_is_factory(const char* running_partition_label, const char* config_name) {
     if (strcmp(FACTORY_PARTITION_LABEL, running_partition_label) == 0)
     {
         ESP_LOGW(TAG, "Factory partition is running. %s from config is saving to the flash memory", config_name);
@@ -240,8 +239,7 @@ static bool partition_is_factory(const char *running_partition_label, const char
  * @param running_partition_label Current running partition label
  * @return const char* MQTT broker URL
  */
-static const char *get_mqtt_url(const char *running_partition_label)
-{
+static const char* get_mqtt_url(const char* running_partition_label) {
     nvs_handle handle;
     APP_ABORT_ON_ERROR(nvs_open(NVS_KEY_MQTT_URL, NVS_READWRITE, &handle));
 
@@ -282,8 +280,7 @@ static const char *get_mqtt_url(const char *running_partition_label)
  * @param running_partition_label Current running partition label
  * @return const char* MQTT broker port
  */
-static uint32_t get_mqtt_port(const char *running_partition_label)
-{
+static uint32_t get_mqtt_port(const char* running_partition_label) {
     nvs_handle handle;
     APP_ABORT_ON_ERROR(nvs_open(NVS_KEY_MQTT_PORT, NVS_READWRITE, &handle));
 
@@ -323,8 +320,7 @@ static uint32_t get_mqtt_port(const char *running_partition_label)
  * @param running_partition_label Current running partition label
  * @return const char* MQTT broker access token
  */
-static const char *get_mqtt_access_token(const char *running_partition_label)
-{
+static const char* get_mqtt_access_token(const char* running_partition_label) {
     nvs_handle handle;
     APP_ABORT_ON_ERROR(nvs_open(NVS_KEY_MQTT_ACCESS_TOKEN, NVS_READWRITE, &handle));
 
@@ -355,13 +351,12 @@ static const char *get_mqtt_access_token(const char *running_partition_label)
     return access_token;
 }
 
-static void mqtt_app_start(const char *running_partition_label)
-{
+static void mqtt_app_start(const char* running_partition_label) {
     assert(running_partition_label != NULL);
 
-    const char *mqtt_url = get_mqtt_url(running_partition_label);
+    const char* mqtt_url = get_mqtt_url(running_partition_label);
     const uint32_t mqtt_port = get_mqtt_port(running_partition_label);
-    const char *mqtt_access_token = get_mqtt_access_token(running_partition_label);
+    const char* mqtt_access_token = get_mqtt_access_token(running_partition_label);
 
     esp_mqtt_client_config_t mqtt_cfg = {
         .uri = mqtt_url,
@@ -376,8 +371,7 @@ static void mqtt_app_start(const char *running_partition_label)
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
-static bool fw_versions_are_equal(const char *current_ver, const char *target_ver)
-{
+static bool fw_versions_are_equal(const char* current_ver, const char* target_ver) {
     assert(current_ver != NULL && target_ver != NULL);
 
     if (strcmp(current_ver, target_ver) == 0)
@@ -388,8 +382,7 @@ static bool fw_versions_are_equal(const char *current_ver, const char *target_ve
     return false;
 }
 
-static bool ota_params_are_specified(struct shared_keys ota_config)
-{
+static bool ota_params_are_specified(struct shared_keys ota_config) {
     if (strlen(ota_config.targetFwServerUrl) == 0)
     {
         ESP_LOGW(TAG, "Firmware URL is not specified");
@@ -405,8 +398,7 @@ static bool ota_params_are_specified(struct shared_keys ota_config)
     return true;
 }
 
-static void start_ota(const char *current_ver, struct shared_keys ota_config)
-{
+static void start_ota(const char* current_ver, struct shared_keys ota_config) {
     assert(current_ver != NULL);
 
     if (!fw_versions_are_equal(current_ver, ota_config.targetFwVer) && ota_params_are_specified(ota_config))
@@ -416,7 +408,7 @@ static void start_ota(const char *current_ver, struct shared_keys ota_config)
         ESP_LOGI(TAG, "Firmware URL: %s", ota_config.targetFwServerUrl);
         esp_http_client_config_t config = {
             .url = ota_config.targetFwServerUrl,
-            .cert_pem = (char *)server_cert_pem_start,
+            .cert_pem = (char*)server_cert_pem_start,
             .event_handler = _http_event_handler,
         };
         esp_err_t ret = esp_https_ota(&config);
@@ -431,8 +423,7 @@ static void start_ota(const char *current_ver, struct shared_keys ota_config)
     }
 }
 
-static enum state connection_state(BaseType_t actual_event, const char *current_state_name)
-{
+static enum state connection_state(BaseType_t actual_event, const char* current_state_name) {
     assert(current_state_name != NULL);
 
     if (actual_event & WIFI_DISCONNECTED_EVENT)
@@ -455,13 +446,12 @@ static enum state connection_state(BaseType_t actual_event, const char *current_
  *
  * @param pvParameters Pointer to the task arguments
  */
-static void ota_task(void *pvParameters)
-{
+static void ota_task(void* pvParameters) {
     enum state current_connection_state = STATE_CONNECTION_IS_OK;
     enum state state = STATE_INITIAL;
     BaseType_t ota_events;
     BaseType_t actual_event = 0x00;
-    char running_partition_label[sizeof(((esp_partition_t *)0)->label)];
+    char running_partition_label[sizeof(((esp_partition_t*)0)->label)];
 
     while (1)
     {
@@ -473,8 +463,8 @@ static void ota_task(void *pvParameters)
             }
 
             actual_event = xEventGroupWaitBits(event_group,
-                                               WIFI_CONNECTED_EVENT | WIFI_DISCONNECTED_EVENT | MQTT_CONNECTED_EVENT | MQTT_DISCONNECTED_EVENT | OTA_CONFIG_FETCHED_EVENT,
-                                               false, false, portMAX_DELAY);
+                WIFI_CONNECTED_EVENT | WIFI_DISCONNECTED_EVENT | MQTT_CONNECTED_EVENT | MQTT_DISCONNECTED_EVENT | OTA_CONFIG_FETCHED_EVENT,
+                false, false, portMAX_DELAY);
         }
 
         switch (state)
@@ -493,7 +483,7 @@ static void ota_task(void *pvParameters)
             }
             APP_ABORT_ON_ERROR(err);
 
-            const esp_partition_t *running_partition = esp_ota_get_running_partition();
+            const esp_partition_t* running_partition = esp_ota_get_running_partition();
             strncpy(running_partition_label, running_partition->label, sizeof(running_partition_label));
             ESP_LOGI(TAG, "Running partition: %s", running_partition_label);
 
@@ -535,9 +525,9 @@ static void ota_task(void *pvParameters)
                 ESP_LOGI(TAG, "Connected to MQTT broker %s, on port %d", CONFIG_MQTT_BROKER_URL, CONFIG_MQTT_BROKER_PORT);
 
                 // Send the current firmware version to ThingsBoard
-                cJSON *current_fw = cJSON_CreateObject();
+                cJSON* current_fw = cJSON_CreateObject();
                 cJSON_AddStringToObject(current_fw, TB_CLIENT_ATTR_FIELD_CURRENT_FW, FIRMWARE_VERSION);
-                char *current_fw_attribute = cJSON_PrintUnformatted(current_fw);
+                char* current_fw_attribute = cJSON_PrintUnformatted(current_fw);
                 cJSON_Delete(current_fw);
                 esp_mqtt_client_publish(mqtt_client, TB_ATTRIBUTES_TOPIC, current_fw_attribute, 0, 1, 0);
                 // Free is intentional, it's client responsibility to free the result of cJSON_Print
@@ -643,21 +633,18 @@ static void ota_task(void *pvParameters)
     }
 }
 
-void app_main()
-{
+void app_main() {
     event_group = xEventGroupCreate();
     xTaskCreate(&ota_task, "ota_task", 8192, NULL, 5, NULL);
     xTaskCreate(&main_application_task, "main_application_task", 8192, NULL, 5, NULL);
 }
 
-void notify_wifi_connected()
-{
+void notify_wifi_connected() {
     xEventGroupClearBits(event_group, WIFI_DISCONNECTED_EVENT);
     xEventGroupSetBits(event_group, WIFI_CONNECTED_EVENT);
 }
 
-void notify_wifi_disconnected()
-{
+void notify_wifi_disconnected() {
     xEventGroupClearBits(event_group, WIFI_CONNECTED_EVENT);
     xEventGroupSetBits(event_group, WIFI_DISCONNECTED_EVENT);
 }
